@@ -1,0 +1,20 @@
+{
+  "name": "orbit",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Orbit — a local-first autonomous AI runtime.",
+  "workspaces": [
+    "apps/web",
+    "packages/shared"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace=@orbit/web",
+    "build:web": "npm run build --workspace=@orbit/web",
+    "lint:web": "npm run lint --workspace=@orbit/web",
+    "format:web": "npm run format --workspace=@orbit/web",
+    "format:check:web": "npm run format:check --workspace=@orbit/web"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
