@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { HealthResponse, VersionResponse } from "@orbit/shared";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -77,6 +78,10 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Link href="/tasks" className="text-sm font-medium text-primary underline underline-offset-4">
+        View tasks →
+      </Link>
     </main>
   );
 }

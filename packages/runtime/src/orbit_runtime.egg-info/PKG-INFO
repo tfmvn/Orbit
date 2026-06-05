@@ -1,3 +1,15 @@
+Metadata-Version: 2.4
+Name: orbit-runtime
+Version: 0.2.0
+Summary: Orbit's generic async execution engine: tasks, queue, worker, events. No AI logic.
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Provides-Extra: dev
+Requires-Dist: ruff<1.0,>=0.5; extra == "dev"
+Requires-Dist: black<25.0,>=24.4; extra == "dev"
+Requires-Dist: pytest<9.0,>=8.2; extra == "dev"
+Requires-Dist: pytest-asyncio<1.0,>=0.23; extra == "dev"
+
 # @orbit/runtime
 
 The generic async execution engine for Orbit. Implements the `Runtime`

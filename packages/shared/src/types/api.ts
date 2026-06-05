@@ -16,3 +16,22 @@ export interface VersionResponse {
   environment: "local" | "test" | "staging" | "production";
   git_commit: string | null;
 }
+
+export type TaskStatus =
+  | "created"
+  | "queued"
+  | "running"
+  | "completed"
+  | "failed"
+  | "cancelled";
+
+export interface TaskResponse {
+  id: string;
+  name: string;
+  status: TaskStatus;
+  payload: Record<string, unknown>;
+  result: unknown;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}

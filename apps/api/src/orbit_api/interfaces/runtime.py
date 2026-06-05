@@ -1,7 +1,9 @@
-"""Contract for the future agent execution runtime.
+"""Contract for the future agent-job orchestration layer.
 
-The implementation will live in `packages/runtime`. It is responsible for
-scheduling and executing long-lived agent jobs — not implemented here.
+This is a higher-level, agent-specific contract than `orbit_runtime.Runtime`
+(implemented in `packages/runtime`). The generic engine schedules opaque
+tasks; a future agent layer will likely be built on top of it and expose
+this narrower "job" surface — not implemented here.
 """
 
 from __future__ import annotations

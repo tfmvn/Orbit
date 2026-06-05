@@ -1,8 +1,8 @@
 services:
   api:
     build:
-      context: ../apps/api
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: apps/api/Dockerfile
     env_file:
       - ../apps/api/.env
     environment:

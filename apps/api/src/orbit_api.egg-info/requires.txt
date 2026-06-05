@@ -1,0 +1,13 @@
+fastapi<1.0,>=0.115
+uvicorn[standard]<1.0,>=0.30
+pydantic<3.0,>=2.7
+pydantic-settings<3.0,>=2.3
+structlog<25.0,>=24.1
+orbit-runtime
+
+[dev]
+ruff<1.0,>=0.5
+black<25.0,>=24.4
+pytest<9.0,>=8.2
+pytest-asyncio<1.0,>=0.23
+httpx<1.0,>=0.27

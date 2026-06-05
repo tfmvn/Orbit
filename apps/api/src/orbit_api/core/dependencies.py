@@ -12,11 +12,14 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import Depends
+from orbit_runtime import Runtime
 
 from orbit_api.config import Settings, get_settings
+from orbit_api.core.runtime import get_runtime
 from orbit_api.logging import get_logger
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
+RuntimeDep = Annotated[Runtime, Depends(get_runtime)]
 
 
 def get_app_logger() -> object:
@@ -31,9 +34,5 @@ def get_app_logger() -> object:
 
 LoggerDep = Annotated[object, Depends(get_app_logger)]
 
-# Future dependency providers will be added here, e.g.:
-#
-#   def get_runtime(settings: SettingsDep) -> Runtime: ...
-#   RuntimeDep = Annotated[Runtime, Depends(get_runtime)]
-#
-# wiring a concrete implementation from `packages/runtime` once it exists.
+# Future dependency providers will be added here, e.g. for `Planner`,
+# `ToolProvider`, and `MemoryProvider` once those packages exist.

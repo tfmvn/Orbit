@@ -6,4 +6,4 @@ tool execution, memory, providers) is deliberately not implemented here yet —
 see `orbit_api.interfaces` for the contracts those subsystems will fulfill.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

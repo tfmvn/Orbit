@@ -1,17 +1,10 @@
 [project]
-name = "orbit-api"
+name = "orbit-runtime"
 version = "0.2.0"
-description = "Orbit backend runtime API (task runtime engine — no agent logic yet)"
+description = "Orbit's generic async execution engine: tasks, queue, worker, events. No AI logic."
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = [
-    "fastapi>=0.115,<1.0",
-    "uvicorn[standard]>=0.30,<1.0",
-    "pydantic>=2.7,<3.0",
-    "pydantic-settings>=2.3,<3.0",
-    "structlog>=24.1,<25.0",
-    "orbit-runtime",
-]
+dependencies = []
 
 [project.optional-dependencies]
 dev = [
@@ -19,7 +12,6 @@ dev = [
     "black>=24.4,<25.0",
     "pytest>=8.2,<9.0",
     "pytest-asyncio>=0.23,<1.0",
-    "httpx>=0.27,<1.0",
 ]
 
 [build-system]
@@ -33,10 +25,6 @@ where = ["src"]
 line-length = 100
 target-version = "py311"
 src = ["src", "tests"]
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "ASYNC"]
-ignore = []
 
 [tool.black]
 line-length = 100

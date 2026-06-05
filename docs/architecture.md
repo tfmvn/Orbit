@@ -61,6 +61,41 @@ defines the *shape* each subsystem must have (`Runtime`, `Planner`,
   `structlog.get_logger()` themselves, so logging can be intercepted or
   extended centrally.
 
+## Runtime engine
+
+`packages/runtime` (`orbit_runtime`) is a generic async execution engine. It
+is deliberately independent from any LLM, planner, memory system, or tool
+implementation — those are future subsystems that will *depend on* this
+package, never the other way around.
+
+- **Task** — the only unit of work. Carries an opaque `name` and `payload`;
+  the runtime never interprets either. Moves through a validated state
+  machine: `created → queued → running → {completed, failed, cancelled}`.
+  Invalid transitions raise `InvalidTransitionError` rather than silently
+  succeeding.
+- **Queue** — `TaskQueue` is an abstract contract (`put`/`get`/`qsize`).
+  `InMemoryTaskQueue` is the Phase 1 implementation, backed by
+  `asyncio.Queue`. A Redis-backed (or other) queue can implement the same
+  contract later without changing `Runtime` or `Worker`.
+- **Worker** — pulls task IDs off the queue one at a time, transitions the
+  task through its lifecycle, and calls whatever handler is registered for
+  its `name` via `Runtime.register_handler(name, handler)`. Contains no AI
+  logic; if no handler is registered the task fails with a clear error.
+- **Event bus** — a minimal async pub/sub (`EventBus`), emitting
+  `TaskCreated`, `TaskQueued`, `TaskStarted`, `TaskCompleted`, `TaskFailed`,
+  and `TaskCancelled`. Future UI or logging subscribes without the runtime
+  knowing they exist.
+- **Runtime** — the façade future subsystems and the API depend on:
+  `submit`, `cancel`, `get`, `list`, plus `start`/`stop` for the worker pool.
+  It owns the task store, queue, event bus, and handler registry, but knows
+  nothing about what any task actually does.
+
+`apps/api` wires a single process-wide `Runtime` (see
+`orbit_api/core/runtime.py`), started/stopped from the app's lifespan, and
+exposes it over HTTP at `/api/v1/tasks` (submit, get, list, cancel) — no AI
+endpoints exist yet. `apps/web`'s `/tasks` page is a placeholder view over
+that same API.
+
 ## Frontend
 
 `apps/web` is a standard Next.js App Router project. It talks to the API

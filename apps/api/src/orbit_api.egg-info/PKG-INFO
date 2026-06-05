@@ -1,0 +1,49 @@
+Metadata-Version: 2.4
+Name: orbit-api
+Version: 0.2.0
+Summary: Orbit backend runtime API (task runtime engine — no agent logic yet)
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi<1.0,>=0.115
+Requires-Dist: uvicorn[standard]<1.0,>=0.30
+Requires-Dist: pydantic<3.0,>=2.7
+Requires-Dist: pydantic-settings<3.0,>=2.3
+Requires-Dist: structlog<25.0,>=24.1
+Requires-Dist: orbit-runtime
+Provides-Extra: dev
+Requires-Dist: ruff<1.0,>=0.5; extra == "dev"
+Requires-Dist: black<25.0,>=24.4; extra == "dev"
+Requires-Dist: pytest<9.0,>=8.2; extra == "dev"
+Requires-Dist: pytest-asyncio<1.0,>=0.23; extra == "dev"
+Requires-Dist: httpx<1.0,>=0.27; extra == "dev"
+
+# orbit-api
+
+FastAPI backend for Orbit. See the [root README](../../README.md) for full
+project context.
+
+## Run locally
+
+```bash
+pip install -e ".[dev]"
+cp .env.example .env
+uvicorn orbit_api.main:app --reload
+```
+
+## Test
+
+```bash
+pytest
+```
+
+## Layout
+
+```
+src/orbit_api/
+├── main.py         # app factory / entrypoint
+├── config.py       # Settings (pydantic-settings)
+├── logging.py      # structlog configuration
+├── core/           # DI providers used by routes
+├── api/v1/         # versioned HTTP routes
+└── interfaces/     # abstract contracts for future subsystems
+```

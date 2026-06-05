@@ -4,6 +4,10 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+echo "==> Installing runtime engine (Python) dependencies"
+cd "$repo_root/packages/runtime"
+python3 -m pip install -e ".[dev]"
+
 echo "==> Installing API (Python) dependencies"
 cd "$repo_root/apps/api"
 python3 -m pip install -e ".[dev]"

@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from orbit_api import __version__
 from orbit_api.api.v1.router import router as v1_router
 from orbit_api.config import get_settings
+from orbit_api.core.runtime import get_runtime
 from orbit_api.logging import configure_logging, get_logger
 
 
@@ -23,15 +24,21 @@ from orbit_api.logging import configure_logging, get_logger
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application startup/shutdown hooks.
 
-    Future subsystems (runtime, tool provider, memory provider) will be
-    constructed and torn down here once they exist, and attached to
-    `app.state` for dependency providers to pick up.
+    Starts the process-wide task runtime's worker pool on startup and stops
+    it cleanly on shutdown. Future subsystems (tool provider, memory
+    provider) will be constructed and torn down here too, once they exist.
     """
     settings = get_settings()
     configure_logging(settings)
     logger = get_logger("orbit_api")
     logger.info("startup", environment=settings.environment)
+
+    runtime = get_runtime()
+    await runtime.start()
+
     yield
+
+    await runtime.stop()
     logger.info("shutdown")
 
 
