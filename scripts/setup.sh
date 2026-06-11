@@ -8,6 +8,10 @@ echo "==> Installing runtime engine (Python) dependencies"
 cd "$repo_root/packages/runtime"
 python3 -m pip install -e ".[dev]"
 
+echo "==> Installing tool framework (Python) dependencies"
+cd "$repo_root/packages/tools"
+python3 -m pip install -e ".[dev]"
+
 echo "==> Installing API (Python) dependencies"
 cd "$repo_root/apps/api"
 python3 -m pip install -e ".[dev]"

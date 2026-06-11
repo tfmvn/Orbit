@@ -79,9 +79,14 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      <Link href="/tasks" className="text-sm font-medium text-primary underline underline-offset-4">
-        View tasks →
-      </Link>
+      <div className="flex gap-4">
+        <Link href="/tasks" className="text-sm font-medium text-primary underline underline-offset-4">
+          View tasks →
+        </Link>
+        <Link href="/tools" className="text-sm font-medium text-primary underline underline-offset-4">
+          View tools →
+        </Link>
+      </div>
     </main>
   );
 }

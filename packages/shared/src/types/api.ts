@@ -35,3 +35,18 @@ export interface TaskResponse {
   created_at: string;
   updated_at: string;
 }
+
+export interface ToolMetadataResponse {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+  version: string;
+}
+
+export interface ToolResultResponse {
+  success: boolean;
+  output: unknown;
+  error: string | null;
+  execution_time: number;
+  metadata: Record<string, unknown>;
+}

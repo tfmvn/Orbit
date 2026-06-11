@@ -10,6 +10,7 @@ Requires-Dist: pydantic<3.0,>=2.7
 Requires-Dist: pydantic-settings<3.0,>=2.3
 Requires-Dist: structlog<25.0,>=24.1
 Requires-Dist: orbit-runtime
+Requires-Dist: orbit-tools
 Provides-Extra: dev
 Requires-Dist: ruff<1.0,>=0.5; extra == "dev"
 Requires-Dist: black<25.0,>=24.4; extra == "dev"

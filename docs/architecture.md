@@ -18,9 +18,11 @@ Orbit is organized into three layers, each with a single responsibility:
    and `ModelProvider`.
 3. **Subsystem layer** (`packages/runtime`, `packages/planner`,
    `packages/tools`, `packages/memory`, `packages/providers`) — the actual
-   agent logic. Not implemented yet; each package will implement the
-   matching interface from `orbit_api.interfaces` and nothing else needs to
-   change to add it.
+   agent logic. `packages/runtime` and `packages/tools` are implemented;
+   the rest are not implemented yet. Each package implements the matching
+   interface from `orbit_api.interfaces` (or, like `orbit_runtime` and
+   `orbit_tools`, is wired directly in `core/` when the interface would
+   only add indirection) and nothing else needs to change to add it.
 
 ```
  HTTP layer  →  Wiring layer (DI)  →  Subsystem layer (interfaces today,
@@ -95,6 +97,41 @@ package, never the other way around.
 exposes it over HTTP at `/api/v1/tasks` (submit, get, list, cancel) — no AI
 endpoints exist yet. `apps/web`'s `/tasks` page is a placeholder view over
 that same API.
+
+## Tool framework
+
+`packages/tools` (`orbit_tools`) is Orbit's model-agnostic tool framework —
+the infrastructure future tools (shell, filesystem, git, browser, ...) will
+plug into. It has no dependency on `orbit_runtime`, any AI provider, or a
+planner; those are future callers of this package, never the other way
+around.
+
+- **`Tool`** — the abstract base every tool implements: a `metadata`
+  property (`ToolMetadata`: name, description, JSON-Schema-like
+  `parameters`, version), `validate(arguments)`, and
+  `async execute(arguments, context)`. `Tool.run(...)` wraps validation and
+  execution and never raises — failures come back as a `ToolResult` with
+  `success=False`.
+- **`ToolContext`** — reusable per-invocation context (task id, request id,
+  permissions, config, metadata, a cooperative cancellation flag).
+  Structure only, populated by future callers; this package never
+  interprets it.
+- **`ToolResult`** — the standardized outcome every tool returns:
+  `success`, `output`, `error`, `execution_time`, `metadata`.
+- **`ToolRegistry`** — registers, unregisters, discovers (`list()`), and
+  invokes (`invoke(name, arguments, context)`) tools by name, mirroring
+  `orbit_runtime.HandlerRegistry`'s "register once, look up by name" shape.
+  Callers never instantiate a tool directly.
+- **Built-in demonstration tools** — `EchoTool`, `TimeTool`,
+  `SystemInfoTool`. Trivial by design; they exist only to prove the
+  architecture works end-to-end. Real capability tools belong to later
+  phases.
+
+`apps/api` wires a single process-wide `ToolRegistry` (see
+`orbit_api/core/tools.py`), seeded with the built-in tools, and exposes it
+over HTTP at `/api/v1/tools` (list, get metadata, execute) — no AI or agent
+endpoints exist yet. `apps/web`'s `/tools` page lists registered tools and
+lets you run them, showing the resulting `ToolResult`.
 
 ## Frontend
 
