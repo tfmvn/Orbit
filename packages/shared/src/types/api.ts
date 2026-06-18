@@ -50,3 +50,20 @@ export interface ToolResultResponse {
   execution_time: number;
   metadata: Record<string, unknown>;
 }
+
+export interface WorkspaceInfoResponse {
+  root: string;
+  exists: boolean;
+}
+
+/** Shape of one entry returned by the filesystem tool's `list_directory`
+ * and `metadata` operations (see `orbit_tools.filesystem.FilesystemTool`). */
+export interface FilesystemEntry {
+  name: string;
+  path: string;
+  is_file: boolean;
+  is_dir: boolean;
+  size: number;
+  modified: number;
+  mode: string;
+}

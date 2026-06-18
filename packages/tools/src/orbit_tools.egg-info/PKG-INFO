@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: orbit-tools
-Version: 0.2.0
+Version: 0.3.0
 Summary: Orbit's model-agnostic tool framework: Tool interface, registry, context, result. No AI logic.
 Requires-Python: >=3.11
 Description-Content-Type: text/markdown
@@ -13,9 +13,9 @@ Requires-Dist: pytest-asyncio<1.0,>=0.23; extra == "dev"
 # @orbit/tools
 
 Orbit's model-agnostic tool framework. Implements the infrastructure future
-tools (shell, filesystem, git, browser, ...) will plug into — this package
-contains no AI, agent, planner, or provider logic, and no tools beyond
-lightweight demonstrations.
+tools (shell, git, browser, ...) plug into, plus `FilesystemTool` — the
+first real capability tool. No AI, agent, planner, or provider logic lives
+here.
 
 ## Install (editable, local development)
 
@@ -45,6 +45,28 @@ pip install -e ".[dev]"
 
 `EchoTool`, `TimeTool`, `SystemInfoTool` — trivial tools proving the
 architecture works end-to-end. Not meant to be useful on their own.
+
+## Filesystem tool
+
+`FilesystemTool` reads, writes, and manages files/directories through a
+single `operation` argument: `read`, `write`, `create`, `delete`,
+`create_directory`, `delete_directory`, `list_directory`, `copy`, `move`,
+`metadata`, `exists`. Every path is resolved through `WorkspaceGuard`
+(`orbit_tools.filesystem.workspace`), which normalizes it and rejects
+anything that would land outside the configured workspace root —
+including `..` traversal and absolute-looking paths. `delete_directory`
+only removes non-empty directories when `recursive=true`, and never
+removes the workspace root itself.
+
+```python
+from orbit_tools import FilesystemTool, ToolContext
+
+fs = FilesystemTool(workspace_root="./workspace")
+result = await fs.run({"operation": "create", "path": "notes.txt", "content": "hi"}, ToolContext())
+```
+
+`WorkspaceGuard` is meant to be reused as-is by future filesystem-adjacent
+tools (shell, git, ...) rather than each reimplementing path validation.
 
 ## Usage
 

@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     # CORS — kept permissive for local dev only; tighten per-environment.
     cors_allow_origins: list[str] = ["http://localhost:3000"]
 
+    # Filesystem tool — all file operations are sandboxed to this root.
+    workspace_root: str = "./workspace"
+
     # Logging
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_json: bool = False

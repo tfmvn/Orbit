@@ -5,6 +5,7 @@ import type { ToolMetadataResponse, ToolResultResponse } from "@orbit/shared";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { FileExplorer } from "@/components/file-explorer";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
@@ -59,15 +60,18 @@ export default function ToolsPage() {
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Tools</h1>
         <p className="text-muted-foreground">
-          Tools registered with the tool registry. These are lightweight demonstration tools
-          proving the tool framework works — no AI, agent, or planner logic yet.
+          Tools registered with the tool registry. Echo, Time, and System Info are lightweight
+          demonstration tools; Filesystem is Orbit's first real capability tool, sandboxed to a
+          workspace root below.
         </p>
       </div>
 
       {loadError && <p className="font-mono text-sm text-destructive">{loadError}</p>}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {tools.map((tool) => {
+        {tools
+          .filter((tool) => tool.name !== "filesystem")
+          .map((tool) => {
           const run = runs[tool.name];
           return (
             <Card key={tool.name}>
@@ -121,6 +125,8 @@ export default function ToolsPage() {
           );
         })}
       </div>
+
+      <FileExplorer />
     </main>
   );
 }

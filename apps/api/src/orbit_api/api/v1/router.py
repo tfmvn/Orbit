@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from orbit_api.api.v1 import health, tasks, tools, version
+from orbit_api.api.v1 import health, tasks, tools, version, workspace
 
 router = APIRouter(prefix="/api/v1")
 router.include_router(health.router)
 router.include_router(version.router)
 router.include_router(tasks.router)
 router.include_router(tools.router)
+router.include_router(workspace.router)

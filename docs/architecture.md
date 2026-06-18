@@ -124,14 +124,55 @@ around.
   Callers never instantiate a tool directly.
 - **Built-in demonstration tools** — `EchoTool`, `TimeTool`,
   `SystemInfoTool`. Trivial by design; they exist only to prove the
-  architecture works end-to-end. Real capability tools belong to later
-  phases.
+  architecture works end-to-end.
+- **`FilesystemTool`** — Orbit's first real capability tool. See
+  "Filesystem tool & workspace security" below.
 
 `apps/api` wires a single process-wide `ToolRegistry` (see
 `orbit_api/core/tools.py`), seeded with the built-in tools, and exposes it
 over HTTP at `/api/v1/tools` (list, get metadata, execute) — no AI or agent
 endpoints exist yet. `apps/web`'s `/tools` page lists registered tools and
 lets you run them, showing the resulting `ToolResult`.
+
+## Filesystem tool & workspace security
+
+`FilesystemTool` (`orbit_tools.filesystem`) reads, writes, and manages files
+and directories through a single `operation` argument (`read`, `write`,
+`create`, `delete`, `create_directory`, `delete_directory`,
+`list_directory`, `copy`, `move`, `metadata`, `exists`). It's registered
+under the name `filesystem` and invoked the same way as any other tool —
+`POST /api/v1/tools/filesystem/execute` with `{"arguments": {"operation":
+..., ...}}` — so no new AI-specific endpoints were needed.
+
+**Security model — `WorkspaceGuard`** (`orbit_tools.filesystem.workspace`):
+every path argument is resolved through this before any I/O happens.
+
+- All paths are relative to a single configurable workspace root
+  (`ORBIT_WORKSPACE_ROOT`, default `./workspace`; see `orbit_api.config` and
+  `orbit_api.core.workspace.get_workspace_root`).
+- Paths are normalized (`..` segments collapse) and the result is checked
+  against the resolved root — traversal outside it raises `WorkspaceError`,
+  surfaced to callers as a normal `ToolResult(success=False, ...)`, never a
+  raw exception.
+- Absolute-looking input (`/etc/passwd`, `C:\Windows`) is reinterpreted as
+  relative to the workspace root rather than the host filesystem.
+- `delete_directory` refuses to remove a non-empty directory unless
+  `recursive=true`, and always refuses to remove the workspace root itself.
+- Blocking filesystem calls run via `asyncio.to_thread` so the tool is
+  non-blocking under `Tool.execute`'s async contract.
+
+This is deliberately the pattern future filesystem-adjacent tools (shell,
+git, ...) should reuse for their own sandboxing, rather than each
+reimplementing path validation.
+
+`apps/api` exposes one additional, generic endpoint — `GET
+/api/v1/workspace` — returning the resolved workspace root and whether it
+exists, via `orbit_api.core.workspace.get_workspace_root()` (the same root
+`FilesystemTool` is constructed with in `core/tools.py`). `apps/web`'s
+`/tools` page includes a minimal file explorer (`FileExplorer` in
+`apps/web/src/components/file-explorer.tsx`) built entirely on these two
+endpoints: browse directories, view file contents and metadata, create
+files, and delete files. It intentionally has no code editor.
 
 ## Frontend
 

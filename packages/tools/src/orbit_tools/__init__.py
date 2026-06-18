@@ -5,19 +5,22 @@ tools by name, a reusable `ToolContext`, and a standardized `ToolResult`.
 Independent from `orbit_runtime`, any AI provider, or a planner — those are
 future callers of this package, never dependencies of it.
 
-Only lightweight demonstration tools (`EchoTool`, `TimeTool`,
-`SystemInfoTool`) are included here to prove the architecture. Real
-capability tools (shell, filesystem, git, browser, ...) belong to later
+`EchoTool`, `TimeTool`, and `SystemInfoTool` are lightweight demonstration
+tools that prove the architecture works. `FilesystemTool` is Orbit's first
+real capability tool — sandboxed file/directory access scoped to a
+configurable workspace root (see `orbit_tools.filesystem.WorkspaceGuard`).
+Remaining capability tools (shell, git, browser, ...) belong to later
 phases.
 """
 
 from orbit_tools.builtin import EchoTool, SystemInfoTool, TimeTool
 from orbit_tools.context import ToolContext
+from orbit_tools.filesystem import FilesystemTool, WorkspaceError, WorkspaceGuard
 from orbit_tools.registry import ToolAlreadyRegisteredError, ToolNotFoundError, ToolRegistry
 from orbit_tools.result import ToolResult
 from orbit_tools.tool import Tool, ToolError, ToolMetadata
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "Tool",
@@ -31,5 +34,8 @@ __all__ = [
     "EchoTool",
     "TimeTool",
     "SystemInfoTool",
+    "FilesystemTool",
+    "WorkspaceGuard",
+    "WorkspaceError",
     "__version__",
 ]
