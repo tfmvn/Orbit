@@ -3,6 +3,11 @@
 This document describes the foundation-phase architecture of Orbit. It will
 grow as the runtime, planner, tools, and memory subsystems are implemented.
 
+As of this release, Orbit's tool surface is: `EchoTool`, `TimeTool`,
+`SystemInfoTool` (demonstration), `FilesystemTool` (sandboxed file I/O), and
+`ProcessExecutionTool` (sandboxed external command execution — this
+release). No AI, planner, or agent functionality exists yet.
+
 ## Layers
 
 Orbit is organized into three layers, each with a single responsibility:
@@ -173,6 +178,79 @@ exists, via `orbit_api.core.workspace.get_workspace_root()` (the same root
 `apps/web/src/components/file-explorer.tsx`) built entirely on these two
 endpoints: browse directories, view file contents and metadata, create
 files, and delete files. It intentionally has no code editor.
+
+## Process execution tool & execution lifecycle
+
+`ProcessExecutionTool` (`orbit_tools.process`) executes external commands
+asynchronously, sandboxed to the same workspace root `FilesystemTool` uses.
+It's the execution foundation future tools (git, python, package managers,
+Docker, build systems, ...) are expected to build on — none of those are
+implemented in this release.
+
+**Why it doesn't block like other tools.** Every other tool's `execute`
+runs to completion before `Tool.run` returns a `ToolResult`. A process can
+run far longer than an HTTP request should wait on, so
+`ProcessExecutionTool.execute` instead starts the command as a background
+`asyncio.Task` and returns immediately with an `execution_id`. Callers poll
+for progress and final output separately. `orbit_tools.process.store` holds
+this state:
+
+- **`ExecutionRecord`** — one tracked execution: `id`, `command`, `cwd`,
+  `status`, `stdout`, `stderr`, `exit_code`, `pid`, timestamps, and a
+  computed `duration`.
+- **`ExecutionStore`** — an in-memory `id → ExecutionRecord` map, owned by
+  the `ProcessExecutionTool` instance (one store per process, like
+  `ToolRegistry`).
+- **`orbit_tools.process.executor.run_execution`** — the coroutine that
+  actually spawns the subprocess (`asyncio.create_subprocess_exec`, no
+  shell — `command` is an argv list, so shell metacharacters are never
+  interpreted), captures stdout/stderr, and mutates the `ExecutionRecord` in
+  place as it progresses.
+
+**Execution lifecycle.** An execution moves through exactly one path:
+`running → completed` (process exited, any exit code), `running → failed`
+(couldn't even spawn — e.g. unknown executable), `running → timeout`
+(exceeded its `timeout` and was killed), or `running → cancelled`
+(cancelled via the tool's `cancel(execution_id)`, which cancels the backing
+`asyncio.Task` and kills the process). Every terminal state records
+`finished_at`, so `duration` is stable once execution ends.
+
+**Security.** Validation happens in `ProcessExecutionTool.validate` before
+anything spawns, mirroring `FilesystemTool`: `command` must be a non-empty
+list of strings; `cwd` is resolved through the same `WorkspaceGuard` the
+filesystem tool uses, so it can never point outside the workspace root;
+`env` must be a flat string-to-string mapping; `timeout` must be a positive
+number no greater than a fixed cap (300s). Any violation raises `ToolError`
+before a process is spawned, surfaced as a normal `ToolResult(success=False,
+...)` (or, over HTTP, a 400) — never a raw exception.
+
+**Streaming — supported by the architecture, not yet implemented.** Output
+is captured in full and attached to the `ExecutionRecord` once the process
+finishes rather than streamed incrementally. Nothing about this shape
+forecloses it: a later phase can append output to the record as it arrives
+and expose it over a websocket/SSE endpoint that tails the same record the
+polling endpoints already read from, without changing `ExecutionRecord`,
+`ExecutionStore`, or the tool's public methods.
+
+**Backend API** (`apps/api/src/orbit_api/api/v1/process.py`, mounted at
+`/api/v1/process`):
+
+- `POST /execute` — validates and starts a command, returns its initial
+  status.
+- `GET /{id}/status` — lightweight poll (no stdout/stderr).
+- `GET /{id}/result` — status plus `stdout`, `stderr`, `exit_code`.
+- `POST /{id}/cancel` — requests cancellation of a running execution.
+
+These sit alongside (not instead of) the generic `POST
+/api/v1/tools/process_execute/execute` path every registered tool already
+gets from `tools.py` — the dedicated router exists because status/result
+polling needs to reach the tool's `ExecutionStore` directly, which the
+generic single-shot `ToolRegistry.invoke` doesn't expose. The registry
+itself required no changes.
+
+`apps/web`'s `/tools` page includes a minimal `ProcessExecutor` component
+(`apps/web/src/components/process-executor.tsx`) that runs a command, polls
+status while it runs, and displays stdout, stderr, exit code, and duration.
 
 ## Frontend
 

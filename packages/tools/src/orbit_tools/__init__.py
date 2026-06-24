@@ -16,11 +16,12 @@ phases.
 from orbit_tools.builtin import EchoTool, SystemInfoTool, TimeTool
 from orbit_tools.context import ToolContext
 from orbit_tools.filesystem import FilesystemTool, WorkspaceError, WorkspaceGuard
+from orbit_tools.process import ExecutionRecord, ExecutionStore, ProcessExecutionTool
 from orbit_tools.registry import ToolAlreadyRegisteredError, ToolNotFoundError, ToolRegistry
 from orbit_tools.result import ToolResult
 from orbit_tools.tool import Tool, ToolError, ToolMetadata
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = [
     "Tool",
@@ -37,5 +38,8 @@ __all__ = [
     "FilesystemTool",
     "WorkspaceGuard",
     "WorkspaceError",
+    "ProcessExecutionTool",
+    "ExecutionStore",
+    "ExecutionRecord",
     "__version__",
 ]

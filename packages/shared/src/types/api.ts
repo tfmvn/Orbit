@@ -67,3 +67,25 @@ export interface FilesystemEntry {
   modified: number;
   mode: string;
 }
+
+export type ProcessExecutionStatus = "running" | "completed" | "failed" | "timeout" | "cancelled";
+
+/** Response from `/api/v1/process/execute` and `/{id}/status` (see
+ * `orbit_api.api.v1.process`). */
+export interface ProcessStatusResponse {
+  id: string;
+  command: string[];
+  cwd: string;
+  status: ProcessExecutionStatus;
+  pid: number | null;
+  started_at: number;
+  duration: number | null;
+}
+
+/** Response from `/api/v1/process/{id}/result`. */
+export interface ProcessResultResponse extends ProcessStatusResponse {
+  stdout: string;
+  stderr: string;
+  exit_code: number | null;
+}
+

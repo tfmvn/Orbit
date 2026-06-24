@@ -17,6 +17,11 @@ src/orbit_tools/builtin/time.py
 src/orbit_tools/filesystem/__init__.py
 src/orbit_tools/filesystem/tool.py
 src/orbit_tools/filesystem/workspace.py
+src/orbit_tools/process/__init__.py
+src/orbit_tools/process/executor.py
+src/orbit_tools/process/store.py
+src/orbit_tools/process/tool.py
 tests/test_filesystem.py
+tests/test_process.py
 tests/test_registry.py
 tests/test_tools.py

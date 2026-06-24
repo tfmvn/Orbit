@@ -1,8 +1,9 @@
 """Tool endpoints: list, get metadata, execute.
 
-These expose `orbit_tools.ToolRegistry` over HTTP. Only the built-in demo
-tools (echo, time, system_info) are registered in this phase — no AI or
-agent endpoints live here.
+These expose `orbit_tools.ToolRegistry` over HTTP for every registered tool
+generically. No AI or agent endpoints live here. Process executions started
+via `POST /{name}/execute` (name `process_execute`) return immediately with
+an execution id — see `orbit_api.api.v1.process` for status/result polling.
 """
 
 from __future__ import annotations

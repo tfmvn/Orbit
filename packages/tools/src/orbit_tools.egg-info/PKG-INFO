@@ -13,9 +13,9 @@ Requires-Dist: pytest-asyncio<1.0,>=0.23; extra == "dev"
 # @orbit/tools
 
 Orbit's model-agnostic tool framework. Implements the infrastructure future
-tools (shell, git, browser, ...) plug into, plus `FilesystemTool` — the
-first real capability tool. No AI, agent, planner, or provider logic lives
-here.
+tools (git, python, package managers, Docker, ...) plug into, plus
+`FilesystemTool` and `ProcessExecutionTool` — Orbit's real capability tools
+so far. No AI, agent, planner, or provider logic lives here.
 
 ## Install (editable, local development)
 
@@ -66,7 +66,32 @@ result = await fs.run({"operation": "create", "path": "notes.txt", "content": "h
 ```
 
 `WorkspaceGuard` is meant to be reused as-is by future filesystem-adjacent
-tools (shell, git, ...) rather than each reimplementing path validation.
+tools (git, ...) rather than each reimplementing path validation.
+
+## Process execution tool
+
+`ProcessExecutionTool` runs external commands (argv list, no shell)
+asynchronously, sandboxed to the same workspace root via `WorkspaceGuard`.
+Unlike other tools, `execute` returns immediately with an `execution_id`
+instead of waiting for the command to finish — the process runs as a
+background task and its `ExecutionRecord` (status, stdout, stderr,
+exit_code, pid, duration) lives in the tool's `store` until you ask for it.
+
+```python
+from orbit_tools import ProcessExecutionTool, ToolContext
+
+proc = ProcessExecutionTool(workspace_root="./workspace")
+result = await proc.run({"command": ["echo", "hi"], "timeout": 10}, ToolContext())
+execution_id = result.output["execution_id"]
+
+# ... later, once proc.get_status(execution_id).status != "running":
+record = proc.get_result(execution_id)
+record.stdout, record.exit_code, record.duration
+```
+
+`proc.cancel(execution_id)` requests cancellation of a running execution.
+See `docs/architecture.md` for the full execution lifecycle and the HTTP
+endpoints (`/api/v1/process/...`) built on top of this.
 
 ## Usage
 
