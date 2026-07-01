@@ -4,9 +4,10 @@ This document describes the foundation-phase architecture of Orbit. It will
 grow as the runtime, planner, tools, and memory subsystems are implemented.
 
 As of this release, Orbit's tool surface is: `EchoTool`, `TimeTool`,
-`SystemInfoTool` (demonstration), `FilesystemTool` (sandboxed file I/O), and
-`ProcessExecutionTool` (sandboxed external command execution — this
-release). No AI, planner, or agent functionality exists yet.
+`SystemInfoTool` (demonstration), `FilesystemTool` (sandboxed file I/O),
+`ProcessExecutionTool` (sandboxed external command execution), and
+`SearchTool` (non-semantic workspace indexing and code search — this
+release). No AI, planner, memory, or agent functionality exists yet.
 
 ## Layers
 
@@ -132,6 +133,8 @@ around.
   architecture works end-to-end.
 - **`FilesystemTool`** — Orbit's first real capability tool. See
   "Filesystem tool & workspace security" below.
+- **`SearchTool`** — Orbit's first code-intelligence capability. See
+  "Search tool & workspace index" below.
 
 `apps/api` wires a single process-wide `ToolRegistry` (see
 `orbit_api/core/tools.py`), seeded with the built-in tools, and exposes it
@@ -251,6 +254,74 @@ itself required no changes.
 `apps/web`'s `/tools` page includes a minimal `ProcessExecutor` component
 (`apps/web/src/components/process-executor.tsx`) that runs a command, polls
 status while it runs, and displays stdout, stderr, exit code, and duration.
+
+## Search tool & workspace index
+
+`SearchTool` (`orbit_tools.search`) is Orbit's first code-intelligence
+capability: locating files and text within a workspace without any AI
+model. It's the retrieval foundation future planners and LLM providers are
+expected to call for context — none of those exist in this release, and
+nothing here does embeddings, vector storage, or semantic ranking.
+
+**`WorkspaceIndex`** (`orbit_tools.search.index`) is a lightweight,
+non-semantic file catalog:
+
+- Recursively walks a workspace root via `os.walk`, pruning ignored
+  directory names (default: `.git`, `node_modules`, `.venv`, `venv`,
+  `__pycache__`, `dist`, `build`, plus a few tool-cache directories) before
+  descending into them, and skipping filenames matching ignored glob
+  patterns (default: compiled/bytecode artifacts).
+- Both `ignore_dirs` and `ignore_patterns` are constructor arguments, so a
+  future caller can override them per workspace without editing this
+  package.
+- Stores only path, size, and modified time per file — no content, no
+  embeddings. `refresh()` re-walks and replaces the cached snapshot;
+  `files`/`status()` read the cache, building it lazily on first access if
+  `refresh()` hasn't been called yet.
+
+**Search flow.** `SearchTool.execute` (via `orbit_tools.search.engine`):
+
+1. Reads `WorkspaceIndex.files` (building the index on first use).
+2. Narrows candidates with `filter_files` by `extensions` and/or
+   `directory`, both optional.
+3. Dispatches by `mode`: `filename` (`search_filenames` — substring match
+   against each candidate's relative path) or `text`/`regex`
+   (`search_contents` — line-by-line match, `text` via a literal
+   `re.escape`d pattern and `regex` via the query compiled directly),
+   both honoring `case_sensitive` and stopping at `max_results`.
+4. Returns `query`, `mode`, `matches` (each with `path`, `line`, `column`,
+   `text`), `match_count`, `files_searched`, and `search_duration` (search
+   time only, separate from `ToolResult.execution_time`).
+
+Files that fail to decode as UTF-8, or disappear between indexing and
+search, are skipped rather than raising — consistent with `FilesystemTool`
+and `ProcessExecutionTool` converting failures into structured results, not
+exceptions.
+
+**Extension points.** A future semantic-search release can add a parallel
+`mode` (e.g. `"semantic"`) or a new tool entirely that also reads from
+`WorkspaceIndex`, without changing `WorkspaceIndex` or the existing
+filename/text/regex modes. A future planner can call `SearchTool` through
+the same `ToolRegistry.invoke("search", ...)` path any other caller does.
+
+**Backend API** (`apps/api/src/orbit_api/api/v1/search.py`, mounted at
+`/api/v1/search`):
+
+- `POST /` — runs a search (delegates to `SearchTool` via the registry).
+- `GET /index` — current index status (`root`, `file_count`, `built_at`,
+  `ignore_dirs`).
+- `POST /index/refresh` — re-indexes the workspace and returns the new
+  status.
+
+These sit alongside the generic `POST /api/v1/tools/search/execute` path
+every registered tool already gets — the dedicated router exists because
+index status/refresh need to reach `SearchTool`'s `WorkspaceIndex`
+directly, the same reasoning `process.py` uses for `ExecutionStore`.
+
+`apps/web`'s `/tools` page includes a minimal `SearchPanel` component
+(`apps/web/src/components/search-panel.tsx`) with a query input, mode/
+case-sensitivity/extension/directory filters, a manual re-index button, and
+a results list showing matching files, lines, and search duration.
 
 ## Frontend
 

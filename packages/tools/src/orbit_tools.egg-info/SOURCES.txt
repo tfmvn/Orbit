@@ -21,7 +21,12 @@ src/orbit_tools/process/__init__.py
 src/orbit_tools/process/executor.py
 src/orbit_tools/process/store.py
 src/orbit_tools/process/tool.py
+src/orbit_tools/search/__init__.py
+src/orbit_tools/search/engine.py
+src/orbit_tools/search/index.py
+src/orbit_tools/search/tool.py
 tests/test_filesystem.py
 tests/test_process.py
 tests/test_registry.py
+tests/test_search.py
 tests/test_tools.py

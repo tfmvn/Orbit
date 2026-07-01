@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileExplorer } from "@/components/file-explorer";
 import { ProcessExecutor } from "@/components/process-executor";
+import { SearchPanel } from "@/components/search-panel";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
@@ -62,8 +63,8 @@ export default function ToolsPage() {
         <h1 className="text-3xl font-bold tracking-tight">Tools</h1>
         <p className="text-muted-foreground">
           Tools registered with the tool registry. Echo, Time, and System Info are lightweight
-          demonstration tools; Filesystem and Process Execution are Orbit's real capability
-          tools, both sandboxed to a workspace root below.
+          demonstration tools; Filesystem, Process Execution, and Search are Orbit's real
+          capability tools, sandboxed to a workspace root below.
         </p>
       </div>
 
@@ -71,7 +72,12 @@ export default function ToolsPage() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         {tools
-          .filter((tool) => tool.name !== "filesystem" && tool.name !== "process_execute")
+          .filter(
+            (tool) =>
+              tool.name !== "filesystem" &&
+              tool.name !== "process_execute" &&
+              tool.name !== "search",
+          )
           .map((tool) => {
           const run = runs[tool.name];
           return (
@@ -129,6 +135,7 @@ export default function ToolsPage() {
 
       <FileExplorer />
       <ProcessExecutor />
+      <SearchPanel />
     </main>
   );
 }

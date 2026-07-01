@@ -89,3 +89,31 @@ export interface ProcessResultResponse extends ProcessStatusResponse {
   exit_code: number | null;
 }
 
+/** One match from `/api/v1/search`: a whole file (filename mode) or a line
+ * within one (text/regex mode). */
+export interface SearchMatch {
+  path: string;
+  line: number | null;
+  column: number | null;
+  text: string;
+}
+
+/** Response from `POST /api/v1/search` (see `orbit_api.api.v1.search`). */
+export interface SearchResponse {
+  query: string;
+  mode: "filename" | "text" | "regex";
+  matches: SearchMatch[];
+  match_count: number;
+  files_searched: number;
+  search_duration: number;
+}
+
+/** Response from `GET /api/v1/search/index` and
+ * `POST /api/v1/search/index/refresh`. */
+export interface IndexStatusResponse {
+  root: string;
+  file_count: number;
+  built_at: number | null;
+  ignore_dirs: string[];
+}
+

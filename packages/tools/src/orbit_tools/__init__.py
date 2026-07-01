@@ -9,8 +9,10 @@ future callers of this package, never dependencies of it.
 tools that prove the architecture works. `FilesystemTool` is Orbit's first
 real capability tool — sandboxed file/directory access scoped to a
 configurable workspace root (see `orbit_tools.filesystem.WorkspaceGuard`).
-Remaining capability tools (shell, git, browser, ...) belong to later
-phases.
+`SearchTool` is Orbit's first code-intelligence capability: non-semantic
+filename/full-text/regex search backed by `WorkspaceIndex` (see
+`orbit_tools.search`). Remaining capability tools (shell, git, browser,
+...) and semantic/embeddings-based search belong to later phases.
 """
 
 from orbit_tools.builtin import EchoTool, SystemInfoTool, TimeTool
@@ -19,9 +21,10 @@ from orbit_tools.filesystem import FilesystemTool, WorkspaceError, WorkspaceGuar
 from orbit_tools.process import ExecutionRecord, ExecutionStore, ProcessExecutionTool
 from orbit_tools.registry import ToolAlreadyRegisteredError, ToolNotFoundError, ToolRegistry
 from orbit_tools.result import ToolResult
+from orbit_tools.search import IndexedFile, SearchMatch, SearchTool, WorkspaceIndex
 from orbit_tools.tool import Tool, ToolError, ToolMetadata
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 __all__ = [
     "Tool",
@@ -41,5 +44,9 @@ __all__ = [
     "ProcessExecutionTool",
     "ExecutionStore",
     "ExecutionRecord",
+    "SearchTool",
+    "WorkspaceIndex",
+    "IndexedFile",
+    "SearchMatch",
     "__version__",
 ]
