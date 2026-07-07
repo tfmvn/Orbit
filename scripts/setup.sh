@@ -12,6 +12,10 @@ echo "==> Installing tool framework (Python) dependencies"
 cd "$repo_root/packages/tools"
 python3 -m pip install -e ".[dev]"
 
+echo "==> Installing Context Engine (Python) dependencies"
+cd "$repo_root/packages/context"
+python3 -m pip install -e ".[dev]"
+
 echo "==> Installing API (Python) dependencies"
 cd "$repo_root/apps/api"
 python3 -m pip install -e ".[dev]"

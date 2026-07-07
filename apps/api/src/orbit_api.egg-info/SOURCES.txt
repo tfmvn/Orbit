@@ -11,6 +11,7 @@ src/orbit_api.egg-info/requires.txt
 src/orbit_api.egg-info/top_level.txt
 src/orbit_api/api/__init__.py
 src/orbit_api/api/v1/__init__.py
+src/orbit_api/api/v1/context.py
 src/orbit_api/api/v1/health.py
 src/orbit_api/api/v1/process.py
 src/orbit_api/api/v1/router.py
@@ -20,6 +21,7 @@ src/orbit_api/api/v1/tools.py
 src/orbit_api/api/v1/version.py
 src/orbit_api/api/v1/workspace.py
 src/orbit_api/core/__init__.py
+src/orbit_api/core/context.py
 src/orbit_api/core/dependencies.py
 src/orbit_api/core/runtime.py
 src/orbit_api/core/tools.py
@@ -30,6 +32,7 @@ src/orbit_api/interfaces/planner.py
 src/orbit_api/interfaces/provider.py
 src/orbit_api/interfaces/runtime.py
 src/orbit_api/interfaces/tools.py
+tests/test_context.py
 tests/test_filesystem.py
 tests/test_health.py
 tests/test_process.py

@@ -117,3 +117,49 @@ export interface IndexStatusResponse {
   ignore_dirs: string[];
 }
 
+/** Workspace identity as reported by the Context Engine. */
+export interface ContextWorkspaceInfo {
+  root: string;
+  file_count: number;
+  indexed_at: number | null;
+}
+
+/** File count/size for one extension, as reported by the Context Engine. */
+export interface ExtensionBreakdownResponse {
+  extension: string;
+  file_count: number;
+  total_size: number;
+}
+
+/** Response from `GET /api/v1/context/stats`. */
+export interface ProjectStatsResponse {
+  total_files: number;
+  total_size: number;
+  by_extension: ExtensionBreakdownResponse[];
+}
+
+/** Response from `GET /api/v1/context/summary`. */
+export interface ProjectSummaryResponse {
+  workspace: ContextWorkspaceInfo;
+  stats: ProjectStatsResponse;
+}
+
+/** One file gathered into a context bundle. */
+export interface SelectedFileResponse {
+  path: string;
+  size: number;
+  content: string | null;
+  truncated: boolean;
+}
+
+/** Response from `POST /api/v1/context/generate`. */
+export interface ContextBundleResponse {
+  workspace: ContextWorkspaceInfo;
+  stats: ProjectStatsResponse;
+  files: SelectedFileResponse[];
+  matches: SearchMatch[];
+  query: string | null;
+  generated_at: number;
+  truncated: boolean;
+}
+

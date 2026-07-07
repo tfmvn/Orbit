@@ -13,10 +13,12 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends
+from orbit_context import ContextEngine
 from orbit_runtime import Runtime
 from orbit_tools import ToolRegistry
 
 from orbit_api.config import Settings, get_settings
+from orbit_api.core.context import get_context_engine
 from orbit_api.core.runtime import get_runtime
 from orbit_api.core.tools import get_tool_registry
 from orbit_api.core.workspace import get_workspace_root
@@ -26,6 +28,7 @@ SettingsDep = Annotated[Settings, Depends(get_settings)]
 RuntimeDep = Annotated[Runtime, Depends(get_runtime)]
 ToolRegistryDep = Annotated[ToolRegistry, Depends(get_tool_registry)]
 WorkspaceRootDep = Annotated[Path, Depends(get_workspace_root)]
+ContextEngineDep = Annotated[ContextEngine, Depends(get_context_engine)]
 
 
 def get_app_logger() -> object:

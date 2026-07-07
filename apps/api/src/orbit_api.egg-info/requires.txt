@@ -5,6 +5,7 @@ pydantic-settings<3.0,>=2.3
 structlog<25.0,>=24.1
 orbit-runtime
 orbit-tools
+orbit-context
 
 [dev]
 ruff<1.0,>=0.5

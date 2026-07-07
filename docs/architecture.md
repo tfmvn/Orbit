@@ -6,8 +6,10 @@ grow as the runtime, planner, tools, and memory subsystems are implemented.
 As of this release, Orbit's tool surface is: `EchoTool`, `TimeTool`,
 `SystemInfoTool` (demonstration), `FilesystemTool` (sandboxed file I/O),
 `ProcessExecutionTool` (sandboxed external command execution), and
-`SearchTool` (non-semantic workspace indexing and code search — this
-release). No AI, planner, memory, or agent functionality exists yet.
+`SearchTool` (non-semantic workspace indexing and code search). On top of
+these, `packages/context` (`orbit_context`) adds the Context Engine — this
+release — which gathers and structures workspace context from the tools
+above. No AI, planner, memory, or agent functionality exists yet.
 
 ## Layers
 
@@ -23,12 +25,13 @@ Orbit is organized into three layers, each with a single responsibility:
    implementations of `Runtime`, `Planner`, `ToolProvider`, `MemoryProvider`,
    and `ModelProvider`.
 3. **Subsystem layer** (`packages/runtime`, `packages/planner`,
-   `packages/tools`, `packages/memory`, `packages/providers`) — the actual
-   agent logic. `packages/runtime` and `packages/tools` are implemented;
-   the rest are not implemented yet. Each package implements the matching
-   interface from `orbit_api.interfaces` (or, like `orbit_runtime` and
-   `orbit_tools`, is wired directly in `core/` when the interface would
-   only add indirection) and nothing else needs to change to add it.
+   `packages/tools`, `packages/context`, `packages/memory`,
+   `packages/providers`) — the actual agent logic. `packages/runtime`,
+   `packages/tools`, and `packages/context` are implemented; the rest are
+   not implemented yet. Each package implements the matching interface
+   from `orbit_api.interfaces` (or, like `orbit_runtime`, `orbit_tools`,
+   and `orbit_context`, is wired directly in `core/` when the interface
+   would only add indirection) and nothing else needs to change to add it.
 
 ```
  HTTP layer  →  Wiring layer (DI)  →  Subsystem layer (interfaces today,
@@ -322,6 +325,97 @@ directly, the same reasoning `process.py` uses for `ExecutionStore`.
 (`apps/web/src/components/search-panel.tsx`) with a query input, mode/
 case-sensitivity/extension/directory filters, a manual re-index button, and
 a results list showing matching files, lines, and search duration.
+
+## Context Engine
+
+`packages/context` (`orbit_context`) is Orbit's Context Engine: the layer
+between raw tools and future AI consumers. It gathers and structures
+workspace context — it does not reason, rank, summarize, or make any
+AI-related decision. Future planners and model providers are expected to
+call `ContextEngine` instead of `search`/`filesystem` tools directly,
+so those tools' internals (how search matches are found, how files are
+read) stay hidden behind a stable, typed interface.
+
+**Responsibilities** (`orbit_context.ContextEngine`):
+
+- `workspace_info()` / `project_stats()` / `project_summary()` — workspace
+  identity and aggregate statistics (file count, total size, breakdown by
+  extension), read from the `search` tool's `WorkspaceIndex` — no new
+  filesystem walk happens here.
+- `search_matches(query, ...)` — runs a search via
+  `ToolRegistry.invoke("search", ...)` and returns typed
+  `SearchMatchInfo` objects.
+- `load_files(paths)` — reads each path via
+  `ToolRegistry.invoke("filesystem", operation="read", ...)`, deduplicating
+  and sorting paths first so output order never depends on call order.
+  Unreadable paths are skipped, not raised.
+- `build_context(query=..., paths=..., ...)` — the full assembly: runs a
+  search if `query` is given, merges its matches' paths with any explicit
+  `paths`, bounds that candidate set through `ContextBuilder` *before*
+  reading anything (so limits cut down on tool calls, not just output),
+  then loads the survivors and packages everything into a `ContextBundle`.
+
+**Interaction with existing capabilities.** `ContextEngine` only depends on
+`orbit_tools.ToolRegistry` — it calls `registry.get("search")` (typed as
+`SearchTool`, to reach `index_status()`/`index.files` for statistics) and
+`registry.invoke(...)` for both `search` and `filesystem`. It never
+imports `FilesystemTool` or duplicates path/sandboxing logic; every read
+still goes through `WorkspaceGuard` inside `FilesystemTool`. A
+`ContextEngineError` wraps any tool failure (missing tool, `ToolResult`
+with `success=False`) so callers see one exception type.
+
+**Context models** (`orbit_context.models`, frozen dataclasses with
+`to_dict()`, mirroring `ToolResult.to_dict()`):
+
+- **`WorkspaceInfo`** — root, indexed file count, index build time.
+- **`ExtensionBreakdown`** / **`ProjectStats`** — file count and total size,
+  overall and per extension.
+- **`SearchMatchInfo`** — one search match (path, line, column, text).
+- **`SelectedFile`** — one gathered file (path, size, content or `None` if
+  unreadable, `truncated` if content was clipped).
+- **`ContextBundle`** — the full result: `workspace`, `stats`, `files`,
+  `matches`, the originating `query`, `generated_at`, and `truncated`
+  (whether `ContextBuilder`'s limits dropped any candidates).
+- **`ProjectSummary`** — `workspace` + `stats` only, for a summary view
+  without reading any file content.
+
+**`ContextBuilder`** (`orbit_context.builder`) keeps all filtering/limiting
+logic pure and separate from tool I/O:
+
+- `select_files(candidates)` — drops paths under configured
+  `ignore_paths` prefixes, sorts by path (deterministic ordering), and
+  caps the result at `max_files`, reporting whether anything was cut.
+- `clip_content(content)` — truncates content over `max_file_size` bytes
+  (UTF-8-safe), reporting whether it clipped.
+
+Both are driven by `ContextBuilderConfig` (`max_files`, `max_file_size`,
+`ignore_paths`), so a caller can construct a `ContextEngine` with a custom
+`ContextBuilder` without changing the engine itself.
+
+**Extension points for future planners.** A planner/provider package can
+depend on `orbit_context` and call `ContextEngine.build_context(...)`
+without knowing `search`/`filesystem` exist — swapping or adding tools
+later (git, embeddings-backed search, ...) only changes what
+`ContextEngine` calls internally, not its public models. A future
+semantic-search release can add relevance ranking as a new method or an
+optional `ContextBuilder` strategy without touching the existing
+deterministic file-count/size-based selection.
+
+**Backend API** (`apps/api/src/orbit_api/api/v1/context.py`, mounted at
+`/api/v1/context`):
+
+- `GET /summary` — `ProjectSummary` (workspace + stats, no files).
+- `GET /stats` — `ProjectStats` alone.
+- `POST /generate` — full `ContextBundle` from a `query` and/or explicit
+  `paths` (at least one required); mirrors `SearchTool`'s search
+  parameters (`mode`, `case_sensitive`, `extensions`, `directory`,
+  `max_results`).
+
+All three return structured JSON only — no AI-shaped response fields.
+`apps/web`'s new `/context` page lists indexed files (via the existing
+generic `filesystem` `list_directory` endpoint), lets you select files,
+optionally enter a search query, and displays the resulting
+`ContextBundle` (workspace, stats, files, matches) as a JSON preview.
 
 ## Frontend
 
