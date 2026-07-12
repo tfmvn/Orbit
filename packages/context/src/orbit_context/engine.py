@@ -15,12 +15,13 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from orbit_tools import SearchTool, ToolContext, ToolRegistry
+from orbit_tools import GitTool, SearchTool, ToolContext, ToolRegistry
 
 from orbit_context.builder import ContextBuilder
 from orbit_context.models import (
     ContextBundle,
     ExtensionBreakdown,
+    GitInfo,
     ProjectStats,
     ProjectSummary,
     SearchMatchInfo,
@@ -54,6 +55,15 @@ class ContextEngine:
         if not isinstance(tool, SearchTool):
             raise ContextEngineError("'search' tool is not registered")
         return tool
+
+    def _git_tool(self) -> GitTool | None:
+        """The registered `git` tool, or `None` if it isn't registered.
+
+        Unlike `search`/`filesystem`, `git` is optional — a workspace need
+        not be a Git repository, and this engine works fine without one.
+        """
+        tool = self._registry.get("git")
+        return tool if isinstance(tool, GitTool) else None
 
     async def _invoke(self, name: str, **arguments: Any) -> Any:
         result = await self._registry.invoke(name, arguments, ToolContext())
@@ -92,8 +102,46 @@ class ContextEngine:
         )
 
     async def project_summary(self) -> ProjectSummary:
-        """Lightweight overview: workspace identity plus statistics."""
-        return ProjectSummary(workspace=await self.workspace_info(), stats=await self.project_stats())
+        """Lightweight overview: workspace identity, statistics, and Git snapshot."""
+        return ProjectSummary(
+            workspace=await self.workspace_info(),
+            stats=await self.project_stats(),
+            git=await self.git_info(),
+        )
+
+    # -- Git snapshot --------------------------------------------------
+
+    async def git_info(self) -> GitInfo | None:
+        """Minimal Git snapshot (branch, cleanliness, modified files, recent
+        commits) for the workspace root, or `None` if the `git` tool isn't
+        registered or the workspace isn't a Git repository. Never raises —
+        callers that don't care about Git shouldn't need to handle
+        `ContextEngineError` just to get a `ProjectSummary`/`ContextBundle`.
+        """
+        tool = self._git_tool()
+        if tool is None:
+            return None
+
+        detect = await tool.run({"operation": "detect", "path": "."}, ToolContext())
+        if not detect.success or not detect.output.get("is_repository"):
+            return None
+
+        status_result = await tool.run({"operation": "status", "path": "."}, ToolContext())
+        log_result = await tool.run({"operation": "log", "path": ".", "limit": 5}, ToolContext())
+        branch_result = await tool.run({"operation": "branch", "path": "."}, ToolContext())
+        if not (status_result.success and log_result.success and branch_result.success):
+            return None
+
+        modified = sorted(set(status_result.output["modified"]) | set(status_result.output["staged"]))
+        recent_commits = [
+            f"{c['short_commit']} {c['subject']}" for c in log_result.output["commits"]
+        ]
+        return GitInfo(
+            branch=branch_result.output["branch"],
+            clean=status_result.output["clean"],
+            modified_files=modified,
+            recent_commits=recent_commits,
+        )
 
     # -- search & file loading ---------------------------------------------
 
@@ -179,6 +227,7 @@ class ContextEngine:
         files = await self.load_files([path for path, _ in selected_candidates])
         workspace = await self.workspace_info()
         stats = await self.project_stats()
+        git = await self.git_info()
 
         return ContextBundle(
             workspace=workspace,
@@ -188,4 +237,5 @@ class ContextEngine:
             query=query,
             generated_at=time.time(),
             truncated=truncated,
+            git=git,
         )

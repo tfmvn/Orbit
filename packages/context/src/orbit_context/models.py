@@ -94,11 +94,37 @@ class SelectedFile:
 
 
 @dataclass(frozen=True)
+class GitInfo:
+    """Optional Git snapshot included in a context bundle, if a repository is present.
+
+    Deliberately minimal — the fields a future planner needs for
+    situational awareness (branch, cleanliness, what's changed, what
+    happened recently), not a full status/log dump. Sourced from the `git`
+    tool's `metadata`, `status`, and `log` operations; no summarization
+    happens here.
+    """
+
+    branch: str | None
+    clean: bool
+    modified_files: list[str]
+    recent_commits: list[str]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "branch": self.branch,
+            "clean": self.clean,
+            "modified_files": self.modified_files,
+            "recent_commits": self.recent_commits,
+        }
+
+
+@dataclass(frozen=True)
 class ContextBundle:
     """Structured workspace context assembled by `ContextEngine`.
 
     The final, consumer-facing object: everything a future planner or
     model provider needs, gathered but not reasoned about or summarized.
+    `git` is `None` when the workspace isn't a Git repository.
     """
 
     workspace: WorkspaceInfo
@@ -108,6 +134,7 @@ class ContextBundle:
     query: str | None
     generated_at: float
     truncated: bool
+    git: GitInfo | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -118,15 +145,24 @@ class ContextBundle:
             "query": self.query,
             "generated_at": self.generated_at,
             "truncated": self.truncated,
+            "git": self.git.to_dict() if self.git else None,
         }
 
 
 @dataclass(frozen=True)
 class ProjectSummary:
-    """Lightweight workspace overview: identity and statistics, no files."""
+    """Lightweight workspace overview: identity and statistics, no files.
+
+    `git` is `None` when the workspace isn't a Git repository.
+    """
 
     workspace: WorkspaceInfo
     stats: ProjectStats
+    git: GitInfo | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {"workspace": self.workspace.to_dict(), "stats": self.stats.to_dict()}
+        return {
+            "workspace": self.workspace.to_dict(),
+            "stats": self.stats.to_dict(),
+            "git": self.git.to_dict() if self.git else None,
+        }

@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: orbit-context
-Version: 0.1.0
+Version: 0.2.0
 Summary: Orbit's Context Engine: gathers and structures workspace context from existing tools. No AI logic.
 Requires-Python: >=3.11
 Description-Content-Type: text/markdown

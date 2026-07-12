@@ -35,9 +35,17 @@ class ProjectStatsResponse(BaseModel):
     by_extension: list[ExtensionBreakdownResponse]
 
 
+class GitInfoResponse(BaseModel):
+    branch: str | None
+    clean: bool
+    modified_files: list[str]
+    recent_commits: list[str]
+
+
 class ProjectSummaryResponse(BaseModel):
     workspace: WorkspaceInfoResponse
     stats: ProjectStatsResponse
+    git: GitInfoResponse | None = None
 
 
 class SearchMatchResponse(BaseModel):
@@ -62,6 +70,7 @@ class ContextBundleResponse(BaseModel):
     query: str | None
     generated_at: float
     truncated: bool
+    git: GitInfoResponse | None = None
 
 
 class GenerateContextRequest(BaseModel):

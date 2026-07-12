@@ -12,6 +12,7 @@ from orbit_context.engine import ContextEngine, ContextEngineError
 from orbit_context.models import (
     ContextBundle,
     ExtensionBreakdown,
+    GitInfo,
     ProjectStats,
     ProjectSummary,
     SearchMatchInfo,
@@ -19,7 +20,7 @@ from orbit_context.models import (
     WorkspaceInfo,
 )
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "ContextEngine",
@@ -33,5 +34,6 @@ __all__ = [
     "SelectedFile",
     "ContextBundle",
     "ProjectSummary",
+    "GitInfo",
     "__version__",
 ]

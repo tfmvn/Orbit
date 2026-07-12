@@ -92,6 +92,9 @@ export default async function DashboardPage() {
         >
           View context →
         </Link>
+        <Link href="/git" className="text-sm font-medium text-primary underline underline-offset-4">
+          View git →
+        </Link>
       </div>
     </main>
   );

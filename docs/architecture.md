@@ -5,11 +5,13 @@ grow as the runtime, planner, tools, and memory subsystems are implemented.
 
 As of this release, Orbit's tool surface is: `EchoTool`, `TimeTool`,
 `SystemInfoTool` (demonstration), `FilesystemTool` (sandboxed file I/O),
-`ProcessExecutionTool` (sandboxed external command execution), and
-`SearchTool` (non-semantic workspace indexing and code search). On top of
-these, `packages/context` (`orbit_context`) adds the Context Engine — this
-release — which gathers and structures workspace context from the tools
-above. No AI, planner, memory, or agent functionality exists yet.
+`ProcessExecutionTool` (sandboxed external command execution),
+`SearchTool` (non-semantic workspace indexing and code search), and
+`GitTool` (read-only Git repository inspection — this release). On top of
+these, `packages/context` (`orbit_context`) adds the Context Engine, which
+gathers and structures workspace context from the tools above, including
+an optional Git snapshot. No AI, planner, memory, or agent functionality
+exists yet.
 
 ## Layers
 
@@ -416,6 +418,77 @@ All three return structured JSON only — no AI-shaped response fields.
 generic `filesystem` `list_directory` endpoint), lets you select files,
 optionally enter a search query, and displays the resulting
 `ContextBundle` (workspace, stats, files, matches) as a JSON preview.
+
+## Git Workspace
+
+`orbit_tools.git` (`GitTool`) is Orbit's first Git capability: read-only
+repository inspection, sandboxed to the same workspace root as
+`FilesystemTool` and `ProcessExecutionTool`. **This release is
+intentionally read-only** — no operation registered anywhere in this
+package can modify a repository.
+
+**Repository inspection flow.** `GitTool` never parses `.git` internals
+itself; every operation shells out to the `git` executable via
+`orbit_tools.git.runner.run_git` (an `asyncio.create_subprocess_exec`
+wrapper, mirroring `orbit_tools.process.executor`) and `orbit_tools.git.
+repository` turns that plumbing/porcelain output into plain dicts:
+
+- `detect` — is `path` inside a Git working tree, *and* is that
+  repository's root inside the configured workspace.
+- `root` — the repository's top-level directory (relative to the
+  workspace root).
+- `branch` — current branch name (or `null` if `HEAD` is detached) and the
+  short HEAD commit.
+- `status` — `git status --porcelain=v2 --ignored`, split into `staged`,
+  `modified`, `untracked`, `ignored`, plus a derived `clean` flag.
+- `log` — recent commit history (`commit`, `short_commit`, author, date,
+  `subject`), most recent first, bounded by `limit` (max 200).
+- `diff` — `git diff --numstat` (or `--staged`), per-file added/removed
+  line counts plus totals.
+- `metadata` — a combined overview: root, branch, `clean`, and remotes.
+
+**Security model.** Every `path` argument is resolved through the same
+`WorkspaceGuard` `FilesystemTool` uses, so a caller can never point `GitTool`
+outside the workspace root. That alone isn't sufficient for Git, though:
+`git` searches *upward* through parent directories for a `.git` folder, so
+a directory inside the workspace could still belong to a repository rooted
+above it. `GitTool` closes this by resolving the actual repository root
+(`git rev-parse --show-toplevel`) and rejecting the operation — with a
+structured `ToolResult`, never a raw exception — unless that root also
+falls inside the workspace. `detect` reports `is_repository: false` in
+this case rather than erroring, since "no repository here" is a normal
+answer for that operation.
+
+**Extension points for future write operations.** Mutating operations
+(`commit`, `add`, `push`, `pull`, `merge`, `rebase`, ...) are out of scope
+for this release and are not implemented, stubbed, or referenced anywhere
+in `orbit_tools.git`. Adding them later means adding new `_op_*`-style
+branches to `GitTool.execute` and new read/write functions to
+`orbit_tools.git.repository` — the `WorkspaceGuard` sandboxing, the
+`run_git` subprocess wrapper, and the workspace-root containment check
+above are all designed to be reused unchanged by that future work.
+
+**Context integration.** `ContextEngine.git_info()` (`packages/context`)
+calls the `git` tool's `detect`/`status`/`log`/`branch` operations and
+folds them into a minimal `GitInfo` (`branch`, `clean`, `modified_files`,
+`recent_commits`) — no AI summarization, just gathered facts. It returns
+`None` if `git` isn't registered or the workspace isn't a repository, and
+is included as the optional `git` field on both `ProjectSummary` and
+`ContextBundle`.
+
+**Backend API** (`apps/api/src/orbit_api/api/v1/git.py`, mounted at
+`/api/v1/git`, alongside the generic `POST /api/v1/tools/git/execute`):
+
+- `GET /status` — staged/modified/untracked/ignored files and `clean`.
+- `GET /branch` — current branch and HEAD commit.
+- `GET /log?limit=` — recent commit history.
+- `GET /diff?staged=` — diff summary (working tree or staged).
+- `GET /metadata` — combined root/branch/clean/remotes overview.
+
+All read-only, all returning structured JSON — no AI-shaped response
+fields, matching `search`/`context`. `apps/web`'s new `/git` page displays
+branch, cleanliness, staged/modified/untracked files, and recent commits
+for the workspace root.
 
 ## Frontend
 

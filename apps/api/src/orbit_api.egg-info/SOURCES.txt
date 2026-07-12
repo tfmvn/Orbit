@@ -12,6 +12,7 @@ src/orbit_api.egg-info/top_level.txt
 src/orbit_api/api/__init__.py
 src/orbit_api/api/v1/__init__.py
 src/orbit_api/api/v1/context.py
+src/orbit_api/api/v1/git.py
 src/orbit_api/api/v1/health.py
 src/orbit_api/api/v1/process.py
 src/orbit_api/api/v1/router.py

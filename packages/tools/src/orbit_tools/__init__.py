@@ -11,20 +11,24 @@ real capability tool — sandboxed file/directory access scoped to a
 configurable workspace root (see `orbit_tools.filesystem.WorkspaceGuard`).
 `SearchTool` is Orbit's first code-intelligence capability: non-semantic
 filename/full-text/regex search backed by `WorkspaceIndex` (see
-`orbit_tools.search`). Remaining capability tools (shell, git, browser,
-...) and semantic/embeddings-based search belong to later phases.
+`orbit_tools.search`). `GitTool` is Orbit's first Git Workspace capability:
+read-only repository inspection (branch, status, log, diff summary, ...)
+backed by the `git` executable (see `orbit_tools.git`). Remaining
+capability tools (mutating git operations, shell, browser, ...) and
+semantic/embeddings-based search belong to later phases.
 """
 
 from orbit_tools.builtin import EchoTool, SystemInfoTool, TimeTool
 from orbit_tools.context import ToolContext
 from orbit_tools.filesystem import FilesystemTool, WorkspaceError, WorkspaceGuard
+from orbit_tools.git import GitCommandResult, GitNotAvailableError, GitTool
 from orbit_tools.process import ExecutionRecord, ExecutionStore, ProcessExecutionTool
 from orbit_tools.registry import ToolAlreadyRegisteredError, ToolNotFoundError, ToolRegistry
 from orbit_tools.result import ToolResult
 from orbit_tools.search import IndexedFile, SearchMatch, SearchTool, WorkspaceIndex
 from orbit_tools.tool import Tool, ToolError, ToolMetadata
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 __all__ = [
     "Tool",
@@ -48,5 +52,8 @@ __all__ = [
     "WorkspaceIndex",
     "IndexedFile",
     "SearchMatch",
+    "GitTool",
+    "GitNotAvailableError",
+    "GitCommandResult",
     "__version__",
 ]

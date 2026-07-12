@@ -13,6 +13,7 @@ from functools import lru_cache
 from orbit_tools import (
     EchoTool,
     FilesystemTool,
+    GitTool,
     ProcessExecutionTool,
     SearchTool,
     SystemInfoTool,
@@ -32,4 +33,5 @@ def get_tool_registry() -> ToolRegistry:
     registry.register(FilesystemTool(workspace_root=get_workspace_root()))
     registry.register(ProcessExecutionTool(workspace_root=get_workspace_root()))
     registry.register(SearchTool(workspace_root=get_workspace_root()))
+    registry.register(GitTool(workspace_root=get_workspace_root()))
     return registry

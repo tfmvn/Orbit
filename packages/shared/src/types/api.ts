@@ -117,6 +117,75 @@ export interface IndexStatusResponse {
   ignore_dirs: string[];
 }
 
+/** One commit, as returned by `GET /api/v1/git/log` (see
+ * `orbit_api.api.v1.git`). */
+export interface GitCommit {
+  commit: string;
+  short_commit: string;
+  author_name: string;
+  author_email: string;
+  date: string;
+  subject: string;
+}
+
+/** Response from `GET /api/v1/git/status`. */
+export interface GitStatusResponse {
+  staged: string[];
+  modified: string[];
+  untracked: string[];
+  ignored: string[];
+  clean: boolean;
+}
+
+/** Response from `GET /api/v1/git/branch`. */
+export interface GitBranchResponse {
+  branch: string | null;
+  detached: boolean;
+  head_commit: string | null;
+}
+
+/** Response from `GET /api/v1/git/log`. */
+export interface GitLogResponse {
+  commits: GitCommit[];
+  count: number;
+}
+
+/** One file's line-change counts from `GET /api/v1/git/diff`. */
+export interface GitDiffFile {
+  path: string;
+  added: number | null;
+  removed: number | null;
+  binary: boolean;
+}
+
+/** Response from `GET /api/v1/git/diff`. */
+export interface GitDiffSummaryResponse {
+  staged: boolean;
+  files: GitDiffFile[];
+  files_changed: number;
+  total_added: number;
+  total_removed: number;
+}
+
+/** Response from `GET /api/v1/git/metadata`. */
+export interface GitMetadataResponse {
+  root: string;
+  branch: string | null;
+  detached: boolean;
+  head_commit: string | null;
+  clean: boolean;
+  remotes: Record<string, string>;
+}
+
+/** Minimal Git snapshot optionally included in Context Engine responses;
+ * `null` when the workspace isn't a Git repository. */
+export interface GitInfoResponse {
+  branch: string | null;
+  clean: boolean;
+  modified_files: string[];
+  recent_commits: string[];
+}
+
 /** Workspace identity as reported by the Context Engine. */
 export interface ContextWorkspaceInfo {
   root: string;
@@ -142,6 +211,7 @@ export interface ProjectStatsResponse {
 export interface ProjectSummaryResponse {
   workspace: ContextWorkspaceInfo;
   stats: ProjectStatsResponse;
+  git: GitInfoResponse | null;
 }
 
 /** One file gathered into a context bundle. */
@@ -161,5 +231,6 @@ export interface ContextBundleResponse {
   query: string | null;
   generated_at: number;
   truncated: boolean;
+  git: GitInfoResponse | null;
 }
 
