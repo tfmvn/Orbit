@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     # Filesystem tool — all file operations are sandboxed to this root.
     workspace_root: str = "./workspace"
 
+    # Model Provider system — Ollama provider connection/generation defaults.
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_default_model: str = "llama3"
+    ollama_timeout: float = 60.0
+
     # Logging
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_json: bool = False

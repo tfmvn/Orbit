@@ -1,0 +1,38 @@
+[project]
+name = "orbit-providers"
+version = "0.1.0"
+description = "Orbit's Model Provider system: provider interface, provider manager, and the Ollama provider. No planner or chat logic."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "orbit-context",
+    "httpx>=0.27,<1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.5,<1.0",
+    "black>=24.4,<25.0",
+    "pytest>=8.2,<9.0",
+    "pytest-asyncio>=0.23,<1.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

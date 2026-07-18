@@ -95,6 +95,12 @@ export default async function DashboardPage() {
         <Link href="/git" className="text-sm font-medium text-primary underline underline-offset-4">
           View git →
         </Link>
+        <Link
+          href="/providers"
+          className="text-sm font-medium text-primary underline underline-offset-4"
+        >
+          View providers →
+        </Link>
       </div>
     </main>
   );

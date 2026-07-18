@@ -13,6 +13,7 @@ dependencies = [
     "orbit-runtime",
     "orbit-tools",
     "orbit-context",
+    "orbit-providers",
 ]
 
 [project.optional-dependencies]

@@ -16,6 +16,10 @@ echo "==> Installing Context Engine (Python) dependencies"
 cd "$repo_root/packages/context"
 python3 -m pip install -e ".[dev]"
 
+echo "==> Installing Model Provider system (Python) dependencies"
+cd "$repo_root/packages/providers"
+python3 -m pip install -e ".[dev]"
+
 echo "==> Installing API (Python) dependencies"
 cd "$repo_root/apps/api"
 python3 -m pip install -e ".[dev]"

@@ -1,0 +1,16 @@
+README.md
+pyproject.toml
+src/orbit_providers/__init__.py
+src/orbit_providers/manager.py
+src/orbit_providers/provider.py
+src/orbit_providers.egg-info/PKG-INFO
+src/orbit_providers.egg-info/SOURCES.txt
+src/orbit_providers.egg-info/dependency_links.txt
+src/orbit_providers.egg-info/requires.txt
+src/orbit_providers.egg-info/top_level.txt
+src/orbit_providers/ollama/__init__.py
+src/orbit_providers/ollama/client.py
+src/orbit_providers/ollama/provider.py
+tests/test_manager.py
+tests/test_ollama.py
+tests/test_provider.py

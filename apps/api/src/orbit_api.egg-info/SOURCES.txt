@@ -15,6 +15,7 @@ src/orbit_api/api/v1/context.py
 src/orbit_api/api/v1/git.py
 src/orbit_api/api/v1/health.py
 src/orbit_api/api/v1/process.py
+src/orbit_api/api/v1/providers.py
 src/orbit_api/api/v1/router.py
 src/orbit_api/api/v1/search.py
 src/orbit_api/api/v1/tasks.py
@@ -24,6 +25,7 @@ src/orbit_api/api/v1/workspace.py
 src/orbit_api/core/__init__.py
 src/orbit_api/core/context.py
 src/orbit_api/core/dependencies.py
+src/orbit_api/core/providers.py
 src/orbit_api/core/runtime.py
 src/orbit_api/core/tools.py
 src/orbit_api/core/workspace.py
@@ -37,6 +39,7 @@ tests/test_context.py
 tests/test_filesystem.py
 tests/test_health.py
 tests/test_process.py
+tests/test_providers.py
 tests/test_search.py
 tests/test_tasks.py
 tests/test_tools.py

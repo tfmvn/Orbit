@@ -10,7 +10,10 @@ As of this release, Orbit's tool surface is: `EchoTool`, `TimeTool`,
 `GitTool` (read-only Git repository inspection — this release). On top of
 these, `packages/context` (`orbit_context`) adds the Context Engine, which
 gathers and structures workspace context from the tools above, including
-an optional Git snapshot. No AI, planner, memory, or agent functionality
+an optional Git snapshot. `packages/providers` (`orbit_providers`) adds
+Orbit's Model Provider system — a generic `ModelProvider` interface, a
+`ProviderManager`, and the first provider, `OllamaProvider` (this
+release). No planner, chat, conversation, memory, or agent functionality
 exists yet.
 
 ## Layers
@@ -29,11 +32,13 @@ Orbit is organized into three layers, each with a single responsibility:
 3. **Subsystem layer** (`packages/runtime`, `packages/planner`,
    `packages/tools`, `packages/context`, `packages/memory`,
    `packages/providers`) — the actual agent logic. `packages/runtime`,
-   `packages/tools`, and `packages/context` are implemented; the rest are
-   not implemented yet. Each package implements the matching interface
-   from `orbit_api.interfaces` (or, like `orbit_runtime`, `orbit_tools`,
-   and `orbit_context`, is wired directly in `core/` when the interface
-   would only add indirection) and nothing else needs to change to add it.
+   `packages/tools`, `packages/context`, and `packages/providers` are
+   implemented; `packages/planner` and `packages/memory` are not
+   implemented yet. Each package implements the matching interface from
+   `orbit_api.interfaces` (or, like `orbit_runtime`, `orbit_tools`,
+   `orbit_context`, and `orbit_providers`, is wired directly in `core/`
+   when the interface would only add indirection) and nothing else needs
+   to change to add it.
 
 ```
  HTTP layer  →  Wiring layer (DI)  →  Subsystem layer (interfaces today,
@@ -60,6 +65,17 @@ defines the *shape* each subsystem must have (`Runtime`, `Planner`,
 - No future refactor needs to move files around — `packages/runtime`,
   `packages/planner`, `packages/tools`, `packages/memory`, and
   `packages/providers` already exist as the agreed home for that code.
+
+Note the same pattern already played out for `orbit_runtime`, `orbit_tools`,
+and `orbit_context`: each defines its *own*, more specific interface
+(`Tool`, `ContextEngine`, ...) rather than literally implementing the
+speculative `orbit_api.interfaces` Protocol it was named after, because the
+real shape only became clear once there was something to build against.
+`orbit_providers.ModelProvider` (`generate`/`health`/`list_models`, this
+release) follows suit — it's the interface future planners actually use,
+distinct from `orbit_api.interfaces.provider.ModelProvider`, which remains
+a narrower, speculative contract for a possible future agent-facing
+"complete" call and is unchanged by this release.
 
 ## Configuration and logging
 
@@ -490,12 +506,119 @@ fields, matching `search`/`context`. `apps/web`'s new `/git` page displays
 branch, cleanliness, staged/modified/untracked files, and recent commits
 for the workspace root.
 
+## Model Provider system
+
+`packages/providers` (`orbit_providers`) is Orbit's Model Provider system:
+the abstraction layer future planners and autonomous workflows will use to
+talk to language models, keeping Orbit model-agnostic. **No planner, chat
+interface, conversation state, memory, or multi-model orchestration exists
+anywhere in this package or release** — it turns one prompt (plus optional
+structured context) into one completion, nothing more.
+
+**`ModelProvider`** (`orbit_providers.provider`) is the generic async
+interface every provider implements, mirroring `orbit_tools.Tool`'s "small
+abstract surface, one real base class" shape:
+
+- `generate(request: GenerationRequest) -> GenerationResult` — a single
+  completion. Raises `ProviderError` on failure (network, unknown model,
+  malformed response — never a raw HTTP exception).
+- `health() -> ProviderHealth` — never raises; reachability problems come
+  back as `ProviderHealth(healthy=False, detail=...)`.
+- `list_models() -> list[ModelInfo]` — models currently available from
+  this provider. Raises `ProviderError` on failure.
+
+Deliberately **not** exposed: chat-specific APIs (message roles,
+conversation history, streaming). Those are scoped to a future planner or
+chat release, not this one.
+
+**Context integration.** `GenerationRequest.context` optionally accepts an
+`orbit_context.ContextBundle` produced by the existing Context Engine.
+`GenerationRequest.combined_prompt()` folds it into the final prompt text
+(workspace identity, Git snapshot, search matches, file contents) ahead of
+the user's `prompt` — purely mechanical string concatenation. No planning,
+ranking, or summarization happens in this package; a future planner is
+expected to shape what goes into `ContextBundle` before it ever reaches a
+`GenerationRequest`.
+
+**`ProviderManager`** (`orbit_providers.manager`) registers, discovers,
+selects, and switches between providers by name, mirroring
+`orbit_tools.ToolRegistry`:
+
+- `register(provider, *, replace=False, activate=False)` — the first
+  provider registered becomes active automatically.
+- `unregister(name)`, `get(name)`, `list()` — discovery, matching
+  `ToolRegistry`'s shape.
+- `active` / `active_provider` / `set_active(name)` — the single "current"
+  provider a caller gets by default; `active_provider` raises
+  `NoActiveProviderError` if none is set.
+
+The runtime, the API layer, and any future planner are expected to depend
+on `ProviderManager`, never instantiate a provider (e.g. `OllamaProvider`)
+directly — this is what lets a second provider be added later without
+touching runtime or planner code.
+
+**`OllamaProvider`** (`orbit_providers.ollama`) is the first, and only,
+provider implemented in this release, backed by a local Ollama server:
+
+- `ollama/client.py` (`OllamaClient`) is a thin async HTTP client (via
+  `httpx`) for exactly the endpoints the provider needs — `GET /api/tags`
+  (list local models), `POST /api/generate` (completion, always
+  `stream: false` — **no streaming in this release**), and `GET /` (a
+  lightweight reachability ping for `health()`). Network failures raise
+  `OllamaConnectionError`, kept separate from `ProviderError` so
+  `OllamaProvider` can attach provider-specific context before it
+  surfaces.
+- `ollama/provider.py` (`OllamaProvider`) adapts that client to
+  `ModelProvider`: maps `GenerationParameters` onto Ollama's `options`
+  object (omitting unset fields rather than sending `null`), applies a
+  configurable `default_model` when a request doesn't specify one, and
+  normalizes every failure mode (unreachable server, malformed response)
+  into `ProviderError` — a raw `httpx` exception never escapes this
+  module.
+
+`apps/api` wires a single process-wide `ProviderManager` (see
+`orbit_api/core/providers.py`, mirroring `core/tools.py`), seeded with one
+`OllamaProvider` configured from `Settings` (`ORBIT_OLLAMA_BASE_URL`,
+`ORBIT_OLLAMA_DEFAULT_MODEL`, `ORBIT_OLLAMA_TIMEOUT`).
+
+**Backend API** (`apps/api/src/orbit_api/api/v1/providers.py`, mounted at
+`/api/v1/providers`):
+
+- `GET /providers` — registered provider names and which one is active.
+- `GET /providers/health` — health of the active provider, or `?provider=`
+  to check a specific one.
+- `GET /providers/models` — models available from the active (or
+  specified) provider.
+- `POST /providers/active` — switch the active provider.
+- `POST /providers/generate` — run a completion; accepts an optional
+  `context_query`/`context_paths`, which are passed straight to
+  `ContextEngine.build_context(...)` before being folded into the prompt.
+  **No `/chat` endpoint exists** — this is a single-shot completion
+  surface only.
+
+Every failure mode maps to a structured HTTP error (404 unknown provider,
+502 provider/network failure, 503 no active provider) rather than a raw
+exception. `apps/web`'s new `/providers` page exists purely to validate
+this integration end-to-end — active provider, provider list, health,
+installed models, and a single test-prompt form. **It is not a chat
+interface.**
+
+**Extension points for future providers.** Adding a second provider (an
+Anthropic or OpenAI adapter, another local runtime, ...) means implementing
+`ModelProvider` in a new `orbit_providers.<name>` submodule and registering
+an instance in `core/providers.py` — no change to `ModelProvider`,
+`ProviderManager`, the API routes, or any runtime/planner code. Streaming
+can be added later as a new method on `ModelProvider` (or a parallel
+streaming-specific provider contract) without breaking `generate`.
+
 ## Frontend
 
 `apps/web` is a standard Next.js App Router project. It talks to the API
 over plain `fetch` using `NEXT_PUBLIC_API_BASE_URL`. Types describing the
 API's response shapes live in `packages/shared` so the frontend (and any
-future client) doesn't need to redefine them.
+future client) doesn't need to redefine them. The new `/providers` page
+(this release) is a validation surface for the Model Provider system, not
+a chat UI — see "Model Provider system" above.
 
 ## Testing
 

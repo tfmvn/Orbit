@@ -234,3 +234,45 @@ export interface ContextBundleResponse {
   git: GitInfoResponse | null;
 }
 
+/** One registered provider, as returned by `GET /api/v1/providers`. */
+export interface ProviderSummaryResponse {
+  name: string;
+  active: boolean;
+}
+
+/** One model available from a provider (`GET /api/v1/providers/models`). */
+export interface ModelInfoResponse {
+  name: string;
+  size: number | null;
+  modified_at: string | null;
+}
+
+/** Response from `GET /api/v1/providers/health`. */
+export interface ProviderHealthResponse {
+  healthy: boolean;
+  provider: string;
+  detail: string | null;
+  checked_at: number;
+}
+
+/** Request body for `POST /api/v1/providers/generate`. */
+export interface GenerateRequest {
+  prompt: string;
+  provider?: string;
+  model?: string;
+  temperature?: number;
+  top_p?: number;
+  max_tokens?: number;
+  stop?: string[];
+  context_query?: string;
+  context_paths?: string[];
+}
+
+/** Response from `POST /api/v1/providers/generate`. */
+export interface GenerateResponse {
+  text: string;
+  model: string;
+  provider: string;
+  duration: number;
+}
+
