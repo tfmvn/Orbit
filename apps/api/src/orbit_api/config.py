@@ -39,7 +39,7 @@ class Settings(BaseSettings):
 
     # Model Provider system — Ollama provider connection/generation defaults.
     ollama_base_url: str = "http://localhost:11434"
-    ollama_default_model: str = "llama3"
+    ollama_default_model: str = "qwen3:4b"
     ollama_timeout: float = 60.0
 
     # Logging
